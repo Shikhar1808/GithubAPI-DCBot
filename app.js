@@ -63,11 +63,6 @@ client.on('messageCreate', async (message) => {
                         inline: true,
                     },
                     {
-                        name: 'Contributions',
-                        value: `${contributionsCount}`,
-                        inline: true,
-                    },
-                    {
                         name: 'Contribution Graph',
                         value: `[Click Here](${contributionGraph})`,
                         inline: true,
