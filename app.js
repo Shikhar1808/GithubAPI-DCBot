@@ -30,7 +30,7 @@ client.on('messageCreate', async (message) => {
             const contributionGraph = `https://ghchart.rshah.org/${username}`
             
             const profileEmbed = {
-                color: 0x0099ff,
+                color: Math.floor(Math.random() * 16777215),
                 title: `${login}'s GitHub Profile`,
                 url: html_url,
                 author: {
@@ -115,7 +115,7 @@ client.on('messageCreate', async (message) => {
             // console.log(repoList);
 
             const repoEmbed = {
-                color: 0x0099ff,
+                color: Math.floor(Math.random() * 16777215),
                 title: `${username}'s GitHub Repositories`,
                 description: repoList,
                 timestamp: new Date(),
@@ -130,6 +130,50 @@ client.on('messageCreate', async (message) => {
         catch(err){
             console.log(err);
             message.reply('Could not fetch GitHub repositories. Make sure the username is correct.');
+        }
+    }
+
+    if(message.content.startsWith('!gitfile')){
+        const args = message.content.split(' ');
+        if(args.length < 3){
+            return message.reply('Please provide a valid GitHub username and repositrory name');
+        }
+        const username = args[1];
+        const repo = args[2];
+
+        try{
+            const repoResponse = await axios.get(`https://api.github.com/repos/${username}/${repo}`,{
+                headers:{
+                    Authorization: `token ${process.env.GITHUB_TOKEN}`
+                }
+            });
+            const { default_branch, html_url } = repoResponse.data;
+
+            const zipURL = `${html_url}/archive/refs/heads/${default_branch}.zip`;
+
+            const repoEmbed = {
+                color: Math.floor(Math.random() * 16777215),
+                title: `${username}/${repo}`,
+                url: html_url,
+                fields: [
+                    {
+                        name: 'Download',
+                        value: `[Click Here](${zipURL})`,
+                    },
+                ],
+                timestamp: new Date(),
+                footer: {
+                    text: 'GitHub Repository',
+                    icon_url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
+                },
+            };
+
+            message.channel.send({ embeds: [repoEmbed] });
+
+        }
+        catch(err){
+            console.log(err);
+            message.reply('Could not fetch GitHub repository. Make sure the username and repository name are correct.');
         }
     }
 });
