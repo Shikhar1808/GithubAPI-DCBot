@@ -99,7 +99,7 @@ client.on('messageCreate', async (message) => {
                 },
                 params:{
                     visibility: 'all',
-                    per_page: 100,
+                    per_page: 1000,
                     sort: 'updated',
 
                 }
@@ -111,21 +111,38 @@ client.on('messageCreate', async (message) => {
                 return;
             }
 
-            let repoList = repos.map(repo => `[${repo.name}](${repo.html_url})`).join('\n');
+            const repoLinks = repos.map(repo => `[${repo.name}](${repo.html_url})`);
             // console.log(repoList);
 
-            const repoEmbed = {
-                color: Math.floor(Math.random() * 16777215),
-                title: `${username}'s GitHub Repositories`,
-                description: repoList,
-                timestamp: new Date(),
-                footer: {
-                    text: 'GitHub Repositories',
-                    icon_url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
-                },
+            const chunkSize = 1024;
+            let chunk = '';
+            const chunks = [];
+            repoLinks.forEach(repo => {
+                if(chunk.length + repo.length > chunkSize){
+                    chunks.push(chunk);
+                    chunk = '';
+                }
+                chunk += repo + '\n';
+            });
+            if(chunk.length > 0){
+                chunks.push(chunk);
             }
 
-            message.channel.send({embeds: [repoEmbed]});
+            for(const chunk of chunks){
+                const repoEmbed = {
+                    color: Math.floor(Math.random() * 16777215),
+                    title: `${username}'s GitHub Repositories`,
+                    description: chunk,
+                    timestamp: new Date(),
+                    footer: {
+                        text: 'GitHub Repositories',
+                        icon_url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
+                    },
+                }
+    
+                await message.channel.send({embeds: [repoEmbed]});
+            }
+            
         }
         catch(err){
             console.log(err);
