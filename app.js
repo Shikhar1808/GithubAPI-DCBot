@@ -11,236 +11,30 @@ const client = new discord.Client({
     GatewayIntentBits.MessageContent]
 });
 
+const gitProfile = require('./commands/gitProfile');
+const gitRepo = require('./commands/gitRepo');
+const gitAllRepo = require('./commands/gitAllRepo');
+
 client.once('ready', () => {
     console.log('Bot is ready');
 })
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
-    if (message.content.startsWith('!gitProfile')) {
-        const username = message.content.split(' ')[1];
-        if (!username) {
-            return message.reply('Please provide a GitHub username.');
-        }
+    const args= message.content.split(' ');
 
-        try {
-            const response = await axios.get(`https://api.github.com/users/${username}`);
-            const { login, avatar_url, html_url, followers, following, public_repos, location } = response.data;
-            // console.log(response.data);
-            const contributionGraph = `https://ghchart.rshah.org/${username}`
-
-            const profileEmbed = {
-                color: Math.floor(Math.random() * 16777215),
-                title: `${login}'s GitHub Profile`,
-                url: html_url,
-                author: {
-                    name: login,
-                    icon_url: avatar_url,
-                    url: html_url,
-                },
-                thumbnail: {
-                    url: avatar_url,
-                },
-                fields: [
-                    {
-                        name: 'Public Repositories',
-                        value: `${public_repos}`,
-                        inline: true,
-                    },
-                    {
-                        name: 'Followers',
-                        value: `${followers}`,
-                        inline: true,
-                    },
-                    {
-                        name: 'Following',
-                        value: `${following}`,
-                        inline: true,
-                    },
-                    {
-                        name: 'Location',
-                        value: `${location || 'Not Specified'}`,
-                        inline: true,
-                    },
-                    {
-                        name: 'Contribution Graph',
-                        value: `[Click Here](${contributionGraph})`,
-                        inline: true,
-                    },
-                ],
-                image: {
-                    url: contributionGraph,
-                },
-                timestamp: new Date(),
-                footer: {
-                    text: 'GitHub Profile',
-                    icon_url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
-                },
-            };
-
-            message.channel.send({ embeds: [profileEmbed] });
-
-        } catch (err) {
-            console.log(err);
-            message.reply('Could not fetch GitHub profile. Make sure the username is correct.');
-        }
+    if(message.content.startsWith('!gitProfile')){
+        const username = args[1];
+        await gitProfile(message,username);
     }
-
-    if (message.content.startsWith('!gitAllRepo')) {
-        const username = message.content.split(' ')[1];
-        if (!username) {
-            message.reply('Please provide valid username');
-            return;
-        }
-        try {
-            const response = await axios.get(`https://api.github.com/users/${username}/repos`, {
-                headers: {
-                    Authorization: `token ${process.env.GITHUB_TOKEN}`
-                },
-                params: {
-                    visibility: 'all',
-                    per_page: 1000,
-                    sort: 'updated',
-
-                }
-            });
-
-            const repos = response.data;
-            if (repos.length === 0) {
-                message.reply('No repositories found');
-                return;
-            }
-
-            const repoLinks = repos.map(repo => `[${repo.name}](${repo.html_url})`);
-            // console.log(repoList);
-
-            const chunkSize = 1024;
-            let chunk = '';
-            const chunks = [];
-            repoLinks.forEach(repo => {
-                if (chunk.length + repo.length > chunkSize) {
-                    chunks.push(chunk);
-                    chunk = '';
-                }
-                chunk += repo + '\n';
-            });
-            if (chunk.length > 0) {
-                chunks.push(chunk);
-            }
-
-            for (const chunk of chunks) {
-                const repoEmbed = {
-                    color: Math.floor(Math.random() * 16777215),
-                    title: `${username}'s GitHub Repositories`,
-                    description: chunk,
-                    timestamp: new Date(),
-                    footer: {
-                        text: 'GitHub Repositories',
-                        icon_url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
-                    },
-                }
-
-                await message.channel.send({ embeds: [repoEmbed] });
-            }
-
-        }
-        catch (err) {
-            console.log(err);
-            message.reply('Could not fetch GitHub repositories. Make sure the username is correct.');
-        }
+    else if(message.content.startsWith('!gitAllRepo')){
+        const username = args[1];
+        await gitAllRepo(message,username);
     }
-
-    const args = message.content.split(' ');
-    if (args.length < 3) {
-        return message.reply('Please provide a valid GitHub username and repository name.');
-    }
-    const username = args[1];
-    const repo = args[2];
-
-    try {
-        const repoResponse = await axios.get(`https://api.github.com/repos/${username}/${repo}`, {
-            headers: {
-                Authorization: `token ${process.env.GITHUB_TOKEN}`
-            }
-        });
-
-        const repoDetails = repoResponse.data
-
-        const zipURL = `${repoDetails.html_url}/archive/refs/heads/${repoDetails.default_branch}.zip`;
-
-        const repoEmbed = {
-            color: Math.floor(Math.random() * 16777215),
-            title: `${repoDetails.owner.login}/${repoDetails.name}`,
-            url: repoDetails.html_url,
-            description: repoDetails.description || 'No description available.',
-            fields: [
-                {
-                    name: 'Language',
-                    value: repoDetails.language || 'Not specified',
-                    inline: true,
-                },
-                {
-                    name: 'Stars',
-                    value: `${repoDetails.stargazers_count}`,
-                    inline: true,
-                },
-                {
-                    name: 'Forks',
-                    value: `${repoDetails.forks_count}`,
-                    inline: true,
-                },
-                {
-                    name: 'Watchers',
-                    value: `${repoDetails.watchers_count}`,
-                    inline: true,
-                },
-                {
-                    name: 'Open Issues',
-                    value: `${repoDetails.open_issues_count}`,
-                    inline: true,
-                },
-                {
-                    name: 'License',
-                    value: repoDetails.license ? repoDetails.license.name : 'None',
-                    inline: true,
-                },
-                {
-                    name: 'Default Branch',
-                    value: repoDetails.default_branch,
-                    inline: true,
-                },
-                {
-                    name: 'Created At',
-                    value: new Date(repoDetails.created_at).toLocaleDateString(),
-                    inline: true,
-                },
-                {
-                    name: 'Last Updated',
-                    value: new Date(repoDetails.updated_at).toLocaleDateString(),
-                    inline: true,
-                },
-                {
-                    name: 'Last Pushed',
-                    value: new Date(repoDetails.pushed_at).toLocaleDateString(),
-                    inline: true,
-                },
-                {
-                    name: 'Download',
-                    value: `[Click Here](${zipURL})`,
-                },
-            ],
-            timestamp: new Date(),
-            footer: {
-                text: 'GitHub Repository',
-                icon_url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
-            },
-        };
-
-        message.channel.send({ embeds: [repoEmbed] });
-    }
-    catch (err) {
-        console.log(err);
-        message.reply('Could not fetch GitHub repository. Make sure the username and repository name are correct.');
+    else if(message.content.startsWith('!gitRepo')){
+        const username = args[1];
+        const repo = args[2];
+        await gitRepo(message,username,repo);
     }
 });
 
