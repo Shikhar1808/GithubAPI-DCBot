@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
     "dev": "npx nodemon app.js",
-    "vercel-build": "echo 'Running vercel build' && npm start"
+    "vercel-build": "npm install && npm run dev"
   },
   "author": "",
   "license": "ISC",
